@@ -1,0 +1,6 @@
+TensorFlow:         2.18.0
+Keras (tf.keras):   3.8.0
+NumPy:              2.0.2
+Matplotlib:         3.10.0
+Sklearn:         1.6.1
+Seaborn:         0.13.2

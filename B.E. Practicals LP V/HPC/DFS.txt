@@ -1,0 +1,82 @@
+#include <iostream>
+#include <vector>
+#include <omp.h>
+
+using namespace std;
+
+// Simple Graph class with adjacency list
+class Graph {
+public:
+    int numVertices;
+    vector<vector<int>> adjList;
+
+    Graph(int vertices) {
+        numVertices = vertices;
+        adjList.resize(vertices);
+    }
+
+    // Add an undirected edge
+    void addEdge(int u, int v) {
+        adjList[u].push_back(v);
+        adjList[v].push_back(u);
+    }
+};
+
+// Parallel DFS using OpenMP tasks
+void parallelDFSUtil(Graph &graph, int u, vector<bool> &visited) {
+    // Mark current node as visited
+    #pragma omp atomic write
+    visited[u] = true;
+
+    cout << "Visited node " << u << '\n';
+
+    for (int neighbor : graph.adjList[u]) {
+        bool alreadyVisited = false;
+
+        #pragma omp atomic read
+        alreadyVisited = visited[neighbor];
+
+        if (!alreadyVisited) {
+            // Create a new task for the unvisited neighbor
+            #pragma omp task
+            parallelDFSUtil(graph, neighbor, visited);
+        }
+    }
+}
+
+void parallelDFS(Graph &graph, int start) {
+    vector<bool> visited(graph.numVertices, false);
+
+    // Begin parallel region with a single task
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            parallelDFSUtil(graph, start, visited);
+        }
+    }
+}
+
+int main() {
+    int numVertices = 8;
+    Graph g(numVertices);
+
+    // Adding edges to the graph
+    g.addEdge(0, 1);
+    g.addEdge(0, 2);
+    g.addEdge(1, 3);
+    g.addEdge(1, 4);
+    g.addEdge(2, 5);
+    g.addEdge(2, 6);
+    g.addEdge(4, 7);
+
+    int source = 0;
+
+    cout << "Starting Parallel DFS from node " << source << ":\n";
+    parallelDFS(g, source);
+
+    return 0;
+}
+
+
+// g++ -fopenmp parallel_dfs.cpp -o parallel_dfs
